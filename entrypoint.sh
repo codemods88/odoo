@@ -59,4 +59,11 @@ if [ "$DB_EXISTS" != "1" ]; then
 fi
 
 echo "Starting Odoo..."
+
+case "$1" in
+    -- | odoo)
+        shift
+        ;;
+esac
+
 exec odoo -d "$DB_NAME" "$@" "${DB_ARGS[@]}"
