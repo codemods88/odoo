@@ -27,7 +27,7 @@ check_config "db_port" "$PGPORT"
 check_config "db_user" "$PGUSER"
 check_config "db_password" "$PGPASSWORD"
 
-/wait-for-psql.py --db_host "$PGHOST" --db_port "$PGPORT" --db_user "$PGUSER" --db_password "$PGPASSWORD" --timeout=30
+wait-for-psql.py --db_host "$PGHOST" --db_port "$PGPORT" --db_user "$PGUSER" --db_password "$PGPASSWORD" --timeout=30
 
 DB_EXISTS=$(PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -t -c "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null | tr -d ' ')
 echo "Database check: exists=$DB_EXISTS"
