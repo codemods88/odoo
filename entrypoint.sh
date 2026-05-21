@@ -5,10 +5,10 @@ if [ -v PASSWORD_FILE ]; then
     PASSWORD=$(< "$PASSWORD_FILE")
 fi
 
-: ${HOST:=${DB_PORT_5432_TCP_ADDR:='db'}}
-: ${PORT:=${DB_PORT_5432_TCP_PORT:=5432}}
-: ${USER:=${DB_ENV_POSTGRES_USER:=${POSTGRES_USER:='odoo'}}}
-: ${PASSWORD:=${DB_ENV_POSTGRES_PASSWORD:=${POSTGRES_PASSWORD:='odoo'}}}
+: ${PGHOST:=${DB_PORT_5432_TCP_ADDR:='db'}}
+: ${PGPORT:=${DB_PORT_5432_TCP_PORT:=5432}}
+: ${PGUSER:=${DB_ENV_POSTGRES_USER:=${POSTGRES_USER:='odoo'}}}
+: ${PGPASSWORD:=${DB_ENV_POSTGRES_PASSWORD:=${POSTGRES_PASSWORD:='odoo'}}}
 : ${DB_NAME:=${POSTGRES_DB:='odoo'}}
 
 DB_ARGS=()
@@ -20,26 +20,26 @@ function check_config() {
         DB_ARGS+=("${value}")
     fi;
 }
-check_config "db_host" "$HOST"
-check_config "db_port" "$PORT"
-check_config "db_user" "$USER"
-check_config "db_password" "$PASSWORD"
+check_config "db_host" "$PGHOST"
+check_config "db_port" "$PGPORT"
+check_config "db_user" "$PGUSER"
+check_config "db_password" "$PGPASSWORD"
 
-wait-for-psql.py --db_host "$HOST" --db_port "$PORT" --db_user "$USER" --db_password "$PASSWORD" --timeout=30
+wait-for-psql.py --db_host "$PGHOST" --db_port "$PGPORT" --db_user "$PGUSER" --db_password "$PGPASSWORD" --timeout=30
 
-DB_EXISTS=$(PGPASSWORD="$PASSWORD" psql -h "$HOST" -p "$PORT" -U "$USER" -t -c "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null | tr -d ' ' || echo "0")
-DB_INITIALIZED=$(PGPASSWORD="$PASSWORD" psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM pg_catalog.pg_tables WHERE tablename='ir_module_module'" 2>/dev/null || echo "0")
+DB_EXISTS=$(PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -t -c "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null | tr -d ' ' || echo "0")
+DB_INITIALIZED=$(PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM pg_catalog.pg_tables WHERE tablename='ir_module_module'" 2>/dev/null || echo "0")
 DB_INITIALIZED=$(echo "$DB_INITIALIZED" | tr -d ' ')
 
 if [ "$DB_EXISTS" = "1" ] && [ "$DB_INITIALIZED" = "0" ]; then
     echo "Database $DB_NAME exists but is empty. Dropping and recreating..."
-    PGPASSWORD="$PASSWORD" psql -h "$HOST" -p "$PORT" -U "$USER" -c "DROP DATABASE IF EXISTS \"$DB_NAME\""
+    PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -c "DROP DATABASE IF EXISTS \"$DB_NAME\""
     DB_EXISTS="0"
 fi
 
 if [ "$DB_EXISTS" != "1" ]; then
     echo "Creating database $DB_NAME..."
-    PGPASSWORD="$PASSWORD" psql -h "$HOST" -p "$PORT" -U "$USER" -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$USER\""
+    PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$PGUSER\""
     echo "Initializing Odoo database..."
     odoo -d "$DB_NAME" -i base --stop-after-init "${DB_ARGS[@]}"
     echo "Database initialized."
